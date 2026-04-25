@@ -1,0 +1,274 @@
+{
+  "exportPresets": [
+    {
+      "id": "instagram-feed-4x5",
+      "name": "Instagram Feed 4:5",
+      "aspectRatio": "4:5",
+      "description": "피드 대표 업로드용 세로형 프레임",
+      "ready": true
+    },
+    {
+      "id": "instagram-square-1x1",
+      "name": "Instagram Square 1:1",
+      "aspectRatio": "1:1",
+      "description": "그리드 정렬과 썸네일 균형용",
+      "ready": false
+    },
+    {
+      "id": "story-9x16",
+      "name": "Story 9:16",
+      "aspectRatio": "9:16",
+      "description": "스토리, 릴스 커버 전환용",
+      "ready": false
+    },
+    {
+      "id": "homepage-thumbnail",
+      "name": "Homepage Thumbnail",
+      "aspectRatio": "3:2",
+      "description": "목록형 카드 썸네일용",
+      "ready": true
+    },
+    {
+      "id": "homepage-detail",
+      "name": "Homepage Detail",
+      "aspectRatio": "16:10",
+      "description": "상세 페이지 본문 이미지용",
+      "ready": false
+    }
+  ],
+  "images": {
+    "img-hanok-01": {
+      "id": "img-hanok-01",
+      "name": "hanok-cover-01.jpg",
+      "shotLabel": "Facade hero",
+      "status": "selected",
+      "tags": ["cover", "space"],
+      "isCover": true,
+      "background": "linear-gradient(135deg, rgba(88, 121, 112, 0.92), rgba(34, 44, 48, 0.82))",
+      "note": "대표컷 후보로 가장 안정적인 구도"
+    },
+    "img-hanok-02": {
+      "id": "img-hanok-02",
+      "name": "hanok-wide-02.jpg",
+      "shotLabel": "Courtyard wide",
+      "status": "candidate",
+      "tags": ["wide", "space"],
+      "isCover": false,
+      "background": "linear-gradient(135deg, rgba(194, 166, 126, 0.88), rgba(102, 74, 46, 0.82))",
+      "note": "공간감 전달이 좋아 서브 컷으로 적합"
+    },
+    "img-hanok-03": {
+      "id": "img-hanok-03",
+      "name": "hanok-detail-03.jpg",
+      "shotLabel": "Joinery detail",
+      "status": "selected",
+      "tags": ["detail", "material"],
+      "isCover": false,
+      "background": "linear-gradient(135deg, rgba(140, 106, 84, 0.92), rgba(64, 46, 39, 0.82))",
+      "note": "재료와 결을 보여주는 디테일컷"
+    },
+    "img-hanok-04": {
+      "id": "img-hanok-04",
+      "name": "hanok-process-04.jpg",
+      "shotLabel": "Installation process",
+      "status": "unreviewed",
+      "tags": ["process", "archive"],
+      "isCover": false,
+      "background": "linear-gradient(135deg, rgba(115, 129, 148, 0.9), rgba(52, 61, 74, 0.86))",
+      "note": "보관용으로 유지 가능"
+    },
+    "img-ceramic-01": {
+      "id": "img-ceramic-01",
+      "name": "ceramic-hero-01.jpg",
+      "shotLabel": "Tabletop hero",
+      "status": "candidate",
+      "tags": ["cover", "detail"],
+      "isCover": false,
+      "background": "linear-gradient(135deg, rgba(168, 122, 93, 0.92), rgba(80, 51, 44, 0.84))",
+      "note": "피드용 대표컷 후보"
+    },
+    "img-ceramic-02": {
+      "id": "img-ceramic-02",
+      "name": "ceramic-material-02.jpg",
+      "shotLabel": "Clay texture",
+      "status": "selected",
+      "tags": ["material", "detail"],
+      "isCover": false,
+      "background": "linear-gradient(135deg, rgba(197, 158, 129, 0.92), rgba(114, 82, 61, 0.84))",
+      "note": "재료 설명 문장과 연결하기 좋음"
+    },
+    "img-ceramic-03": {
+      "id": "img-ceramic-03",
+      "name": "ceramic-archive-03.jpg",
+      "shotLabel": "Shelf archive",
+      "status": "excluded",
+      "tags": ["archive", "space"],
+      "isCover": false,
+      "background": "linear-gradient(135deg, rgba(108, 112, 117, 0.9), rgba(48, 51, 55, 0.86))",
+      "note": "현재 채널 톤과 다소 거리감 있음"
+    },
+    "img-metal-01": {
+      "id": "img-metal-01",
+      "name": "metal-process-01.jpg",
+      "shotLabel": "Workshop process",
+      "status": "exported",
+      "tags": ["process", "archive"],
+      "isCover": false,
+      "background": "linear-gradient(135deg, rgba(126, 137, 150, 0.92), rgba(52, 60, 70, 0.86))",
+      "note": "내부 기록용 내보내기 완료"
+    },
+    "img-metal-02": {
+      "id": "img-metal-02",
+      "name": "metal-space-02.jpg",
+      "shotLabel": "Display space",
+      "status": "selected",
+      "tags": ["space", "wide"],
+      "isCover": true,
+      "background": "linear-gradient(135deg, rgba(95, 116, 123, 0.9), rgba(31, 43, 50, 0.88))",
+      "note": "홈페이지 상세 첫 컷"
+    }
+  },
+  "projects": [
+    {
+      "id": "project-hanok",
+      "name": "Hanok Light Study",
+      "client": "Studio Myeong",
+      "category": "Spatial Editorial",
+      "shootDate": "2026-04-18",
+      "status": "review_pending",
+      "notes": "한옥 공간의 빛과 재료감을 중심으로 인스타그램 피드와 홈페이지 상세 페이지를 함께 준비하는 프로젝트.",
+      "imageIds": ["img-hanok-01", "img-hanok-02", "img-hanok-03", "img-hanok-04"],
+      "textConfig": {
+        "channel": "instagram_caption",
+        "tone": "calm",
+        "length": "medium",
+        "mustInclude": "한옥, 빛, 목재 디테일",
+        "preferred": "차분한 오후, 공간의 결, 손의 흔적",
+        "forbidden": "럭셔리, 완벽한, 무조건",
+        "reference": "빛이 머무는 방향과 재료가 보여주는 시간감을 담백하게 설명하는 문장."
+      },
+      "drafts": [
+        {
+          "id": "draft-hanok-1",
+          "title": "Draft 1",
+          "body": "오후의 빛이 머무는 한옥의 결을 따라, 목재 디테일과 공간의 온도를 차분하게 기록했습니다.",
+          "selected": true
+        },
+        {
+          "id": "draft-hanok-2",
+          "title": "Draft 2",
+          "body": "빛이 스치는 방향과 목재 디테일이 만들어내는 리듬을 중심으로 한옥의 장면을 정리한 기록입니다.",
+          "selected": false
+        },
+        {
+          "id": "draft-hanok-3",
+          "title": "Draft 3",
+          "body": "공간의 결, 손의 흔적, 그리고 오후 빛의 농도를 따라 한옥의 표정을 한 장씩 골랐습니다.",
+          "selected": false
+        }
+      ],
+      "finalText": "오후의 빛이 머무는 방향을 따라 한옥의 결을 기록했습니다. 목재 디테일과 공간의 온도를 담백하게 정리한 시퀀스입니다.",
+      "exportPresetIds": ["instagram-feed-4x5", "instagram-square-1x1", "homepage-detail"],
+      "checklist": [
+        { "id": "cover", "label": "대표컷 확정", "checked": true },
+        { "id": "order", "label": "이미지 순서 점검", "checked": true },
+        { "id": "text", "label": "최종 문안 교정", "checked": false },
+        { "id": "preset", "label": "채널별 프리셋 검토", "checked": false }
+      ]
+    },
+    {
+      "id": "project-ceramic",
+      "name": "Ceramic Table Series",
+      "client": "Atelier Noon",
+      "category": "Object Archive",
+      "shootDate": "2026-04-09",
+      "status": "in_progress",
+      "notes": "테이블웨어 신제품의 재료감과 쓰임새를 보여주는 오브제 촬영 정리 단계.",
+      "imageIds": ["img-ceramic-01", "img-ceramic-02", "img-ceramic-03"],
+      "textConfig": {
+        "channel": "homepage_description",
+        "tone": "refined",
+        "length": "short",
+        "mustInclude": "세라믹, 유약, 사용감",
+        "preferred": "테이블 위, 손에 닿는 질감",
+        "forbidden": "프리미엄, 혁신",
+        "reference": "브랜드 상세 페이지용으로 간결하고 설명적인 문장."
+      },
+      "drafts": [
+        {
+          "id": "draft-ceramic-1",
+          "title": "Draft 1",
+          "body": "세라믹 표면의 유약과 사용감을 중심으로 정리한 테이블웨어 시리즈.",
+          "selected": true
+        },
+        {
+          "id": "draft-ceramic-2",
+          "title": "Draft 2",
+          "body": "손에 닿는 질감과 유약의 깊이를 간결하게 보여주는 세라믹 컬렉션.",
+          "selected": false
+        },
+        {
+          "id": "draft-ceramic-3",
+          "title": "Draft 3",
+          "body": "테이블 위 사용감을 기준으로 선별한 세라믹 신제품 이미지 아카이브.",
+          "selected": false
+        }
+      ],
+      "finalText": "세라믹 표면의 유약과 손에 닿는 사용감을 기준으로 정리한 테이블웨어 시리즈입니다.",
+      "exportPresetIds": ["homepage-thumbnail", "homepage-detail"],
+      "checklist": [
+        { "id": "cover", "label": "대표컷 확정", "checked": false },
+        { "id": "order", "label": "이미지 순서 점검", "checked": false },
+        { "id": "text", "label": "최종 문안 교정", "checked": false },
+        { "id": "preset", "label": "채널별 프리셋 검토", "checked": false }
+      ]
+    },
+    {
+      "id": "project-metal",
+      "name": "Metal Workshop Notes",
+      "client": "Foundry Layer",
+      "category": "Process Documentation",
+      "shootDate": "2026-03-27",
+      "status": "complete",
+      "notes": "작업 과정과 전시 공간 이미지를 분리 정리한 내부 기록 프로젝트.",
+      "imageIds": ["img-metal-01", "img-metal-02"],
+      "textConfig": {
+        "channel": "alt_text",
+        "tone": "descriptive",
+        "length": "short",
+        "mustInclude": "금속 작업, 전시장",
+        "preferred": "작업대, 표면 질감",
+        "forbidden": "감각적인",
+        "reference": "접근성 문안처럼 명료하게."
+      },
+      "drafts": [
+        {
+          "id": "draft-metal-1",
+          "title": "Draft 1",
+          "body": "금속 작업대와 전시장 전경을 기록한 이미지 세트.",
+          "selected": true
+        },
+        {
+          "id": "draft-metal-2",
+          "title": "Draft 2",
+          "body": "표면 질감이 드러나는 금속 작업 과정과 전시장 장면.",
+          "selected": false
+        },
+        {
+          "id": "draft-metal-3",
+          "title": "Draft 3",
+          "body": "금속 작업 공간과 결과물이 배치된 전시장 모습.",
+          "selected": false
+        }
+      ],
+      "finalText": "금속 작업 공간과 결과물이 놓인 전시장 전경.",
+      "exportPresetIds": ["homepage-detail"],
+      "checklist": [
+        { "id": "cover", "label": "대표컷 확정", "checked": true },
+        { "id": "order", "label": "이미지 순서 점검", "checked": true },
+        { "id": "text", "label": "최종 문안 교정", "checked": true },
+        { "id": "preset", "label": "채널별 프리셋 검토", "checked": true }
+      ]
+    }
+  ]
+}

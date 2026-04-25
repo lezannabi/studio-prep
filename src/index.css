@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+:root {
+  color: #1d2426;
+  background: #efebe4;
+  font-family:
+    "Pretendard Variable",
+    "Pretendard",
+    "SUIT Variable",
+    "Noto Sans KR",
+    sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+textarea {
+  resize: vertical;
+}
