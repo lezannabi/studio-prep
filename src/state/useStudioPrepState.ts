@@ -1,17 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
 import { isTauriRuntime } from "../lib/runtime";
+import { tauriStudioPrepBridge } from "../lib/tauriBridge";
 import { BrowserStudioPrepRepository } from "../repositories/browserStudioPrepRepository";
 import { TauriStudioPrepRepository } from "../repositories/tauriStudioPrepRepository";
 import {
   applyProjectFormValues,
+  createProjectImageBundle,
+  createProjectImageBundleFromSources,
+  createProjectBundleFromForm,
   createEmptyProjectFormValues,
-  createProjectFormValues,
-  createProjectFromForm
+  createProjectFormValues
 } from "../services/projectFactory";
 import {
   addProjectToData,
+  appendImagesToProjectInData,
   applyRewritePresetInProject,
   deleteProjectFromData,
+  removeImageFromProjectInData,
+  reorderProjectImagesInData,
   selectDraftInProject,
   setCoverImageInData,
   setImageStatusInData,
@@ -51,6 +57,8 @@ export function useStudioPrepState() {
   const [projectForm, setProjectForm] = useState<ProjectFormValues>(
     createEmptyProjectFormValues()
   );
+  const [projectUploadFiles, setProjectUploadFiles] = useState<File[]>([]);
+  const [folderSyncError, setFolderSyncError] = useState("");
 
   const syncSelection = (nextData: StudioPrepData, projectId?: string) => {
     const fallbackProject = nextData.projects.find((project) => project.id === projectId) ?? nextData.projects[0];
@@ -62,11 +70,15 @@ export function useStudioPrepState() {
     if (!project) {
       setProjectEditorMode("create");
       setProjectForm(createEmptyProjectFormValues());
+      setProjectUploadFiles([]);
+      setFolderSyncError("");
       return;
     }
 
     setProjectEditorMode("edit");
     setProjectForm(createProjectFormValues(project));
+    setProjectUploadFiles([]);
+    setFolderSyncError("");
   };
 
   useEffect(() => {
@@ -248,6 +260,8 @@ export function useStudioPrepState() {
   const startCreateProject = () => {
     setProjectEditorMode("create");
     setProjectForm(createEmptyProjectFormValues());
+    setProjectUploadFiles([]);
+    setFolderSyncError("");
   };
 
   const editProjectMeta = (projectId: string) => {
@@ -272,28 +286,146 @@ export function useStudioPrepState() {
     }));
   };
 
-  const createProject = () => {
+  const updateProjectUploadFiles = (files: File[]) => {
+    setProjectUploadFiles(files);
+  };
+
+  const createProject = async () => {
     if (!data || !projectForm.name.trim()) {
       return;
     }
 
-    const newProject = createProjectFromForm(projectForm);
-    const nextData = addProjectToData(data, newProject);
+    setFolderSyncError("");
+
+    const { project: newProject, images: uploadedImages } = await createProjectBundleFromForm(
+      projectForm,
+      projectUploadFiles
+    );
+    let nextImages = uploadedImages;
+
+    if (isTauriRuntime() && projectForm.sourceFolderPath.trim()) {
+      try {
+        const folderImages = await tauriStudioPrepBridge.scanProjectFolderImages(
+          projectForm.sourceFolderPath.trim()
+        );
+        const importedFolderImages = createProjectImageBundleFromSources(
+          newProject.id,
+          folderImages,
+          Object.keys(uploadedImages).length
+        );
+        nextImages = {
+          ...uploadedImages,
+          ...importedFolderImages
+        };
+        newProject.imageIds = Object.keys(nextImages);
+      } catch (error) {
+        setFolderSyncError(error instanceof Error ? error.message : "폴더를 불러오지 못했습니다.");
+      }
+    }
+
+    const nextData = addProjectToData(data, newProject, nextImages);
     setData(nextData);
     syncSelection(nextData, newProject.id);
     syncEditorFromProject(newProject);
   };
 
-  const saveProjectMeta = () => {
+  const saveProjectMeta = async () => {
     if (!data || !selectedProject || !projectForm.name.trim()) {
       return;
     }
 
+    setFolderSyncError("");
+
     const updatedProject = applyProjectFormValues(selectedProject, projectForm);
-    const nextData = updateProjectInData(data, selectedProject.id, () => updatedProject);
+    let nextData = updateProjectInData(data, selectedProject.id, () => updatedProject);
+
+    if (projectUploadFiles.length > 0) {
+      const images = await createProjectImageBundle(
+        selectedProject.id,
+        projectUploadFiles,
+        selectedProject.imageIds.length
+      );
+      nextData = appendImagesToProjectInData(nextData, selectedProject.id, images);
+    }
+
     setData(nextData);
     syncSelection(nextData, updatedProject.id);
     syncEditorFromProject(updatedProject);
+  };
+
+  const syncProjectFolderImages = async () => {
+    if (!data || !selectedProject || !projectForm.sourceFolderPath.trim() || !isTauriRuntime()) {
+      return;
+    }
+
+    setFolderSyncError("");
+
+    try {
+      const folderImages = await tauriStudioPrepBridge.scanProjectFolderImages(
+        projectForm.sourceFolderPath.trim()
+      );
+      let nextData = updateProjectInData(data, selectedProject.id, (project) => ({
+        ...project,
+        sourceFolderPath: projectForm.sourceFolderPath.trim()
+      }));
+      const existingSourcePaths = new Set(
+        selectedProject.imageIds
+          .map((imageId) => data.images[imageId]?.sourcePath)
+          .filter((value): value is string => Boolean(value))
+      );
+      const newSources = folderImages.filter(
+        (image) => image.sourcePath && !existingSourcePaths.has(image.sourcePath)
+      );
+
+      if (newSources.length === 0) {
+        setData(nextData);
+        return;
+      }
+
+      const images = createProjectImageBundleFromSources(
+        selectedProject.id,
+        newSources,
+        selectedProject.imageIds.length
+      );
+      nextData = appendImagesToProjectInData(nextData, selectedProject.id, images);
+      setData(nextData);
+      syncSelection(nextData, selectedProject.id);
+      syncEditorFromProject(
+        nextData.projects.find((project) => project.id === selectedProject.id)
+      );
+    } catch (error) {
+      setFolderSyncError(error instanceof Error ? error.message : "폴더를 불러오지 못했습니다.");
+    }
+  };
+
+  const removeProjectImage = (imageId: string) => {
+    if (!data || !selectedProject) {
+      return;
+    }
+
+    const nextData = removeImageFromProjectInData(data, selectedProject.id, imageId);
+    setData(nextData);
+
+    const nextProject = nextData.projects.find((project) => project.id === selectedProject.id);
+    const nextSelectedImageId =
+      selectedImageId === imageId ? (nextProject?.imageIds[0] ?? "") : selectedImageId;
+
+    setSelectedImageId(nextSelectedImageId);
+    syncEditorFromProject(nextProject);
+  };
+
+  const reorderProjectImages = (sourceImageId: string, targetImageId: string) => {
+    if (!data || !selectedProject) {
+      return;
+    }
+
+    const nextData = reorderProjectImagesInData(
+      data,
+      selectedProject.id,
+      sourceImageId,
+      targetImageId
+    );
+    setData(nextData);
   };
 
   const deleteProject = () => {
@@ -328,8 +460,14 @@ export function useStudioPrepState() {
     startCreateProject,
     editProjectMeta,
     updateProjectForm,
+    updateProjectUploadFiles,
+    projectUploadFiles,
+    folderSyncError,
     createProject,
     saveProjectMeta,
+    syncProjectFolderImages,
+    removeProjectImage,
+    reorderProjectImages,
     deleteProject,
     openProject,
     updateFinalText,

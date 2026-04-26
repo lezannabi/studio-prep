@@ -29,6 +29,8 @@ export default function App() {
             selectedImageId={store.selectedImageId}
             projectForm={store.projectForm}
             projectEditorMode={store.projectEditorMode}
+            projectImagesForEditor={store.projectImages}
+            folderSyncError={store.folderSyncError}
             presets={store.projectPresets}
             onChangeView={store.setActiveView}
             onSelectProject={store.selectProject}
@@ -46,11 +48,16 @@ export default function App() {
             onTogglePreset={store.markPresetReady}
             onResetSession={store.resetSession}
             onProjectFormChange={store.updateProjectForm}
+            onProjectUploadFilesChange={store.updateProjectUploadFiles}
+            onRemoveProjectImage={store.removeProjectImage}
+            onSyncProjectFolderImages={store.syncProjectFolderImages}
+            projectUploadFiles={store.projectUploadFiles}
             onCreateProject={store.createProject}
             onUpdateProject={store.saveProjectMeta}
             onDeleteProject={store.deleteProject}
             onStartCreateProject={store.startCreateProject}
             onEditProject={store.editProjectMeta}
+            onReorderProjectImages={store.reorderProjectImages}
           />
         );
       case "smartstore":

@@ -10,7 +10,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build"
+    "tauri:build": "tauri build && node scripts/copy-tauri-exe.mjs"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.2.4",

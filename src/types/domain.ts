@@ -46,6 +46,8 @@ export interface ProjectImage {
   tags: ImageTag[];
   isCover: boolean;
   background: string;
+  imageUrl?: string;
+  sourcePath?: string;
   note: string;
 }
 
@@ -88,6 +90,7 @@ export interface Project {
   shootDate: string;
   status: ProjectStatus;
   notes: string;
+  sourceFolderPath?: string;
   imageIds: string[];
   textConfig: TextConfig;
   drafts: TextDraft[];
@@ -103,6 +106,7 @@ export interface ProjectFormValues {
   shootDate: string;
   status: ProjectStatus;
   notes: string;
+  sourceFolderPath: string;
 }
 
 export interface StudioPrepData {

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { isTauriRuntime } from "../lib/runtime";
 import { ImageThumbnail } from "../components/ImageThumbnail";
 import { ProjectListItem } from "../components/ProjectListItem";
 import { ProjectManagerSheet } from "../components/ProjectManagerSheet";
@@ -48,6 +49,9 @@ interface WorkspaceScreenProps {
   selectedImage?: ProjectImage;
   selectedImageId: string;
   projectForm: ProjectFormValues;
+  projectUploadFiles: File[];
+  projectImagesForEditor: ProjectImage[];
+  folderSyncError: string;
   projectEditorMode: "create" | "edit";
   presets: ExportPreset[];
   onChangeView: (view: AppView) => void;
@@ -69,11 +73,15 @@ interface WorkspaceScreenProps {
   onTogglePreset: (presetId: ExportPreset["id"]) => void;
   onResetSession: () => void;
   onProjectFormChange: (field: keyof ProjectFormValues, value: string) => void;
+  onProjectUploadFilesChange: (files: File[]) => void;
+  onRemoveProjectImage: (imageId: string) => void;
+  onSyncProjectFolderImages: () => void;
   onCreateProject: () => void;
   onUpdateProject: () => void;
   onDeleteProject: () => void;
   onStartCreateProject: () => void;
   onEditProject: (projectId: string) => void;
+  onReorderProjectImages: (sourceImageId: string, targetImageId: string) => void;
 }
 
 export function WorkspaceScreen({
@@ -84,6 +92,9 @@ export function WorkspaceScreen({
   selectedImage,
   selectedImageId,
   projectForm,
+  projectUploadFiles,
+  projectImagesForEditor,
+  folderSyncError,
   projectEditorMode,
   presets,
   onChangeView,
@@ -100,13 +111,18 @@ export function WorkspaceScreen({
   onTogglePreset,
   onResetSession,
   onProjectFormChange,
+  onProjectUploadFilesChange,
+  onRemoveProjectImage,
+  onSyncProjectFolderImages,
   onCreateProject,
   onUpdateProject,
   onDeleteProject,
   onStartCreateProject,
-  onEditProject
+  onEditProject,
+  onReorderProjectImages
 }: WorkspaceScreenProps) {
   const [projectSheetOpen, setProjectSheetOpen] = useState(false);
+  const [draggedImageId, setDraggedImageId] = useState("");
   const nextTasks = buildNextTasks(project, projectImages, presets);
 
   return (
@@ -148,9 +164,16 @@ export function WorkspaceScreen({
             open={projectSheetOpen}
             mode={projectEditorMode}
             form={projectForm}
+            uploadFiles={projectUploadFiles}
+            projectImages={projectImagesForEditor}
+            folderSyncError={folderSyncError}
+            isTauriRuntime={isTauriRuntime()}
             canDelete={projectEditorMode === "edit"}
             onToggle={() => setProjectSheetOpen((current) => !current)}
             onChange={onProjectFormChange}
+            onUploadFilesChange={onProjectUploadFilesChange}
+            onRemoveImage={onRemoveProjectImage}
+            onSyncFolder={onSyncProjectFolderImages}
             onSubmit={projectEditorMode === "create" ? onCreateProject : onUpdateProject}
             onDelete={onDeleteProject}
             onCreateMode={onStartCreateProject}
@@ -164,7 +187,18 @@ export function WorkspaceScreen({
                     key={image.id}
                     image={image}
                     active={image.id === selectedImageId}
+                    draggable={projectImages.length > 1}
                     onClick={() => onSelectImage(image.id)}
+                    onDragStart={() => setDraggedImageId(image.id)}
+                    onDrop={() => {
+                      if (!draggedImageId || draggedImageId === image.id) {
+                        return;
+                      }
+
+                      onReorderProjectImages(draggedImageId, image.id);
+                      setDraggedImageId("");
+                    }}
+                    onDragEnd={() => setDraggedImageId("")}
                   />
                 ))
               ) : (
@@ -173,6 +207,11 @@ export function WorkspaceScreen({
                 </div>
               )}
             </div>
+            {projectImages.length > 1 ? (
+              <div className="px-4 pb-4 text-xs text-stone-500">
+                썸네일을 드래그해서 프로젝트 이미지 순서를 바꿀 수 있습니다.
+              </div>
+            ) : null}
           </Panel>
         </aside>
 
@@ -200,6 +239,14 @@ export function WorkspaceScreen({
                   className="relative min-h-[680px] rounded-[32px] border border-stone-200/50 p-7 text-white shadow-inner"
                   style={{ background: selectedImage.background }}
                 >
+                  {selectedImage.imageUrl ? (
+                    <img
+                      src={selectedImage.imageUrl}
+                      alt={selectedImage.name}
+                      className="absolute inset-0 h-full w-full rounded-[32px] object-cover"
+                    />
+                  ) : null}
+                  <div className="absolute inset-0 rounded-[32px] bg-black/20" />
                   <div className="absolute inset-x-0 top-0 h-36 rounded-t-[32px] bg-gradient-to-b from-black/18 to-transparent" />
                   <div className="relative flex h-full flex-col justify-between">
                     <div className="flex flex-wrap items-start justify-between gap-3">

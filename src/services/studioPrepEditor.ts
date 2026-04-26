@@ -27,11 +27,16 @@ export function updateProjectInData(
 
 export function addProjectToData(
   data: StudioPrepData,
-  project: Project
+  project: Project,
+  images: Record<string, ProjectImage> = {}
 ): StudioPrepData {
   return {
     ...data,
-    projects: [project, ...data.projects]
+    projects: [project, ...data.projects],
+    images: {
+      ...data.images,
+      ...images
+    }
   };
 }
 
@@ -39,9 +44,122 @@ export function deleteProjectFromData(
   data: StudioPrepData,
   projectId: string
 ): StudioPrepData {
+  const targetProject = data.projects.find((project) => project.id === projectId);
+
   return {
     ...data,
-    projects: data.projects.filter((project) => project.id !== projectId)
+    projects: data.projects.filter((project) => project.id !== projectId),
+    images: Object.fromEntries(
+      Object.entries(data.images).filter(
+        ([imageId]) => !targetProject?.imageIds.includes(imageId)
+      )
+    )
+  };
+}
+
+export function appendImagesToProjectInData(
+  data: StudioPrepData,
+  projectId: string,
+  images: Record<string, ProjectImage>
+): StudioPrepData {
+  const imageIds = Object.keys(images);
+
+  if (imageIds.length === 0) {
+    return data;
+  }
+
+  return {
+    ...data,
+    projects: data.projects.map((project) =>
+      project.id === projectId
+        ? {
+            ...project,
+            imageIds: [...project.imageIds, ...imageIds]
+          }
+        : project
+    ),
+    images: {
+      ...data.images,
+      ...images
+    }
+  };
+}
+
+export function removeImageFromProjectInData(
+  data: StudioPrepData,
+  projectId: string,
+  imageId: string
+): StudioPrepData {
+  const project = data.projects.find((item) => item.id === projectId);
+
+  if (!project || !project.imageIds.includes(imageId)) {
+    return data;
+  }
+
+  const remainingImageIds = project.imageIds.filter((id) => id !== imageId);
+  const removedImage = data.images[imageId];
+  const nextImages = Object.fromEntries(
+    Object.entries(data.images).filter(([id]) => id !== imageId)
+  );
+
+  if (removedImage?.isCover && remainingImageIds[0]) {
+    const fallbackImage = nextImages[remainingImageIds[0]];
+
+    if (fallbackImage) {
+      nextImages[remainingImageIds[0]] = {
+        ...fallbackImage,
+        isCover: true
+      };
+    }
+  }
+
+  return {
+    ...data,
+    projects: data.projects.map((item) =>
+      item.id === projectId
+        ? {
+            ...item,
+            imageIds: remainingImageIds
+          }
+        : item
+    ),
+    images: nextImages
+  };
+}
+
+export function reorderProjectImagesInData(
+  data: StudioPrepData,
+  projectId: string,
+  sourceImageId: string,
+  targetImageId: string
+): StudioPrepData {
+  if (sourceImageId === targetImageId) {
+    return data;
+  }
+
+  return {
+    ...data,
+    projects: data.projects.map((project) => {
+      if (project.id !== projectId) {
+        return project;
+      }
+
+      const nextImageIds = [...project.imageIds];
+      const sourceIndex = nextImageIds.indexOf(sourceImageId);
+      const targetIndex = nextImageIds.indexOf(targetImageId);
+
+      if (sourceIndex === -1 || targetIndex === -1) {
+        return project;
+      }
+
+      nextImageIds.splice(sourceIndex, 1);
+      nextImageIds.splice(targetIndex, 0, sourceImageId);
+
+      return {
+        ...project,
+        imageIds: nextImageIds
+      };
+    })
   };
 }
 

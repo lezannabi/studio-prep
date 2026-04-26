@@ -1,11 +1,19 @@
 use std::fs;
 use std::path::PathBuf;
 
+use serde::Serialize;
 use serde_json::Value;
 use tauri::{AppHandle, Manager};
 
 const SESSION_FILE_NAME: &str = "studio-prep-session.json";
 const DEFAULT_DATA: &str = include_str!("../../src/data/mockStudioData.json");
+const IMAGE_EXTENSIONS: &[&str] = &["jpg", "jpeg", "png", "webp", "gif", "bmp"];
+
+#[derive(Serialize)]
+pub struct FolderImageRecord {
+    pub name: String,
+    pub path: String,
+}
 
 pub struct StudioPrepRepository {
     app_handle: AppHandle,
@@ -57,6 +65,43 @@ impl StudioPrepRepository {
         }
 
         self.default_data()
+    }
+
+    pub fn scan_project_folder_images(
+        &self,
+        folder_path: &str,
+    ) -> Result<Vec<FolderImageRecord>, String> {
+        let folder = PathBuf::from(folder_path);
+
+        if !folder.exists() {
+            return Err(String::from("지정한 폴더를 찾을 수 없습니다."));
+        }
+
+        if !folder.is_dir() {
+            return Err(String::from("지정한 경로가 폴더가 아닙니다."));
+        }
+
+        let mut images = fs::read_dir(&folder)
+            .map_err(|error| format!("failed to read folder: {error}"))?
+            .filter_map(|entry| entry.ok())
+            .filter_map(|entry| {
+                let path = entry.path();
+                let extension = path.extension()?.to_str()?.to_ascii_lowercase();
+
+                if !IMAGE_EXTENSIONS.contains(&extension.as_str()) {
+                    return None;
+                }
+
+                Some(FolderImageRecord {
+                    name: entry.file_name().to_string_lossy().to_string(),
+                    path: path.to_string_lossy().to_string(),
+                })
+            })
+            .collect::<Vec<_>>();
+
+        images.sort_by(|left, right| left.name.cmp(&right.name));
+
+        Ok(images)
     }
 
     fn session_path(&self) -> Result<PathBuf, String> {
