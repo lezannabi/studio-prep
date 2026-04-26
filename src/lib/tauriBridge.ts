@@ -22,6 +22,23 @@ interface ExportProjectResult {
   exportedPresetCount: number;
 }
 
+interface AnalyzeProjectPayload {
+  projectName: string;
+  notes: string;
+  images: Array<
+    Pick<ProjectImage, "id" | "name" | "imageUrl" | "sourcePath" | "note" | "tags">
+  >;
+}
+
+interface AnalyzeProjectResult {
+  coverImageId: string;
+  decisions: Array<{
+    imageId: string;
+    status: "selected" | "candidate" | "excluded";
+    reason: string;
+  }>;
+}
+
 export const tauriStudioPrepBridge = {
   loadStudioPrepData: () => invoke<StudioPrepData>("load_studio_prep_data"),
   saveStudioPrepData: (data: StudioPrepData) =>
@@ -43,5 +60,20 @@ export const tauriStudioPrepBridge = {
       "export_project_assets",
       payload as unknown as Record<string, unknown>
     ),
-  pickExportFolder: () => invoke<string | null>("pick_export_folder")
+  pickExportFolder: () => invoke<string | null>("pick_export_folder"),
+  analyzeProjectImages: (payload: AnalyzeProjectPayload) =>
+    invoke<AnalyzeProjectResult>("analyze_project_images", {
+      payload: {
+        projectName: payload.projectName,
+        notes: payload.notes,
+        images: payload.images.map((image) => ({
+          imageId: image.id,
+          name: image.name,
+          imageUrl: image.imageUrl,
+          sourcePath: image.sourcePath,
+          note: image.note,
+          tags: image.tags
+        }))
+      }
+    })
 };

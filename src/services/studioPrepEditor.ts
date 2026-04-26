@@ -185,6 +185,14 @@ export function setImageStatusInData(
   return updateImageInData(data, imageId, (image) => ({ ...image, status }));
 }
 
+export function setImageAiReasonInData(
+  data: StudioPrepData,
+  imageId: string,
+  aiReason: string
+): StudioPrepData {
+  return updateImageInData(data, imageId, (image) => ({ ...image, aiReason }));
+}
+
 export function setCoverImageInData(
   data: StudioPrepData,
   projectId: string,

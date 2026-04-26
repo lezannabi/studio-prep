@@ -18,6 +18,7 @@ import {
   deleteProjectFromData,
   removeImageFromProjectInData,
   reorderProjectImagesInData,
+  setImageAiReasonInData,
   selectDraftInProject,
   setCoverImageInData,
   setImageStatusInData,
@@ -66,6 +67,7 @@ export function useStudioPrepState() {
   const [folderSyncError, setFolderSyncError] = useState("");
   const [projectImportError, setProjectImportError] = useState("");
   const [exportFeedback, setExportFeedback] = useState("");
+  const [aiFeedback, setAiFeedback] = useState("");
 
   const syncSelection = (nextData: StudioPrepData, projectId?: string) => {
     const fallbackProject = nextData.projects.find((project) => project.id === projectId) ?? nextData.projects[0];
@@ -81,6 +83,7 @@ export function useStudioPrepState() {
       setFolderSyncError("");
       setProjectImportError("");
       setExportFeedback("");
+      setAiFeedback("");
       return;
     }
 
@@ -90,6 +93,7 @@ export function useStudioPrepState() {
     setFolderSyncError("");
     setProjectImportError("");
     setExportFeedback("");
+    setAiFeedback("");
   };
 
   useEffect(() => {
@@ -267,6 +271,7 @@ export function useStudioPrepState() {
     syncEditorFromProject(resetData.projects[0]);
     setActiveView("dashboard");
     setExportFeedback("");
+    setAiFeedback("");
   };
 
   const startCreateProject = () => {
@@ -549,6 +554,46 @@ export function useStudioPrepState() {
     }
   };
 
+  const runAiImageCuration = async () => {
+    if (!selectedProject) {
+      return;
+    }
+
+    setAiFeedback("");
+
+    if (!isTauriRuntime()) {
+      setAiFeedback("AI 분석은 데스크톱 앱(Tauri)에서만 지원됩니다.");
+      return;
+    }
+
+    try {
+      const result = await tauriStudioPrepBridge.analyzeProjectImages({
+        projectName: selectedProject.name,
+        notes: selectedProject.notes,
+        images: projectImages
+      });
+
+      let nextData = data;
+
+      if (!nextData) {
+        return;
+      }
+
+      for (const decision of result.decisions) {
+        nextData = setImageStatusInData(nextData, decision.imageId, decision.status);
+        nextData = setImageAiReasonInData(nextData, decision.imageId, decision.reason);
+      }
+
+      nextData = setCoverImageInData(nextData, selectedProject.id, result.coverImageId);
+      setData(nextData);
+      setAiFeedback(`AI 분석 완료: 대표컷 ${result.coverImageId}, ${result.decisions.length}장 분류`);
+    } catch (error) {
+      setAiFeedback(
+        error instanceof Error ? error.message : "AI 분석 실행 중 오류가 발생했습니다."
+      );
+    }
+  };
+
   const deleteProject = () => {
     if (!data || !selectedProject) {
       return;
@@ -586,6 +631,7 @@ export function useStudioPrepState() {
     folderSyncError,
     projectImportError,
     exportFeedback,
+    aiFeedback,
     importProjectFile,
     createProject,
     saveProjectMeta,
@@ -594,6 +640,7 @@ export function useStudioPrepState() {
     reorderProjectImages,
     executeProjectExport,
     pickProjectExportFolder,
+    runAiImageCuration,
     deleteProject,
     openProject,
     updateFinalText,

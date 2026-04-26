@@ -3,8 +3,8 @@
 mod repository;
 
 use repository::{
-    ExportImagePayload, ExportPresetPayload, ExportProjectResult, FolderImageRecord,
-    StudioPrepRepository,
+    AnalyzeProjectPayload, AnalyzeProjectResult, ExportImagePayload, ExportPresetPayload,
+    ExportProjectResult, FolderImageRecord, StudioPrepRepository,
 };
 use serde_json::Value;
 use tauri::AppHandle;
@@ -58,6 +58,14 @@ fn pick_export_folder() -> Option<String> {
         .map(|path| path.to_string_lossy().to_string())
 }
 
+#[tauri::command]
+fn analyze_project_images(
+    app: AppHandle,
+    payload: AnalyzeProjectPayload,
+) -> Result<AnalyzeProjectResult, String> {
+    StudioPrepRepository::new(app).analyze_project_images(payload)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -67,7 +75,8 @@ pub fn run() {
             reset_studio_prep_data,
             scan_project_folder_images,
             export_project_assets,
-            pick_export_folder
+            pick_export_folder,
+            analyze_project_images
         ])
         .run(tauri::generate_context!())
         .expect("error while running Studio Prep");

@@ -33,6 +33,7 @@ export default function App() {
             folderSyncError={store.folderSyncError}
             projectImportError={store.projectImportError}
             exportFeedback={store.exportFeedback}
+            aiFeedback={store.aiFeedback}
             presets={store.projectPresets}
             onChangeView={store.setActiveView}
             onSelectProject={store.selectProject}
@@ -41,6 +42,7 @@ export default function App() {
             onSetCover={(imageId) =>
               store.selectedProject && store.setCoverImage(store.selectedProject.id, imageId)
             }
+            onRunAiImageCuration={store.runAiImageCuration}
             onToggleChecklist={store.toggleChecklistItem}
             onTogglePreset={store.markPresetReady}
             onExecuteExport={store.executeProjectExport}

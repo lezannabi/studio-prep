@@ -49,6 +49,7 @@ export interface ProjectImage {
   imageUrl?: string;
   sourcePath?: string;
   note: string;
+  aiReason?: string;
 }
 
 export interface TextConfig {

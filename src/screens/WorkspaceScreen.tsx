@@ -48,6 +48,7 @@ interface WorkspaceScreenProps {
   folderSyncError: string;
   projectImportError: string;
   exportFeedback: string;
+  aiFeedback: string;
   projectEditorMode: "create" | "edit";
   presets: ExportPreset[];
   onChangeView: (view: AppView) => void;
@@ -55,6 +56,7 @@ interface WorkspaceScreenProps {
   onSelectImage: (imageId: string) => void;
   onSetImageStatus: (imageId: string, status: ImageStatus) => void;
   onSetCover: (imageId: string) => void;
+  onRunAiImageCuration: () => void;
   onToggleChecklist: (itemId: string) => void;
   onTogglePreset: (presetId: ExportPreset["id"]) => void;
   onExecuteExport: () => void;
@@ -86,6 +88,7 @@ export function WorkspaceScreen({
   folderSyncError,
   projectImportError,
   exportFeedback,
+  aiFeedback,
   projectEditorMode,
   presets,
   onChangeView,
@@ -93,6 +96,7 @@ export function WorkspaceScreen({
   onSelectImage,
   onSetImageStatus,
   onSetCover,
+  onRunAiImageCuration,
   onToggleChecklist,
   onTogglePreset,
   onExecuteExport,
@@ -362,8 +366,10 @@ export function WorkspaceScreen({
               {activeView === "project" ? (
                 <ImageOrganizeStage
                   image={selectedImage}
+                  aiFeedback={aiFeedback}
                   onSetImageStatus={onSetImageStatus}
                   onSetCover={onSetCover}
+                  onRunAiImageCuration={onRunAiImageCuration}
                 />
               ) : null}
 
@@ -395,17 +401,44 @@ export function WorkspaceScreen({
 
 function ImageOrganizeStage({
   image,
+  aiFeedback,
   onSetImageStatus,
-  onSetCover
+  onSetCover,
+  onRunAiImageCuration
 }: {
   image?: ProjectImage;
+  aiFeedback: string;
   onSetImageStatus: (imageId: string, status: ImageStatus) => void;
   onSetCover: (imageId: string) => void;
+  onRunAiImageCuration: () => void;
 }) {
   return (
     <Panel title="이미지 정리" subtitle="Step 1" className="border-0 bg-transparent p-0 shadow-none">
       {image ? (
         <div className="space-y-5">
+          <div className="rounded-[24px] border border-stone-200 bg-stone-50/90 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-stone-500">AI Curation</p>
+                <p className="mt-1 text-sm text-stone-700">
+                  OpenAI가 대표컷과 상태를 추천합니다.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onRunAiImageCuration}
+                className="rounded-2xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-700"
+              >
+                AI 분석 실행
+              </button>
+            </div>
+            {aiFeedback ? (
+              <p className="mt-3 text-sm text-stone-700">{aiFeedback}</p>
+            ) : null}
+            {image.aiReason ? (
+              <p className="mt-3 text-sm text-stone-600">현재 컷 AI 의견: {image.aiReason}</p>
+            ) : null}
+          </div>
           <div>
             <p className="mb-3 text-sm font-medium text-stone-800">상태</p>
             <div className="flex flex-wrap gap-2">
