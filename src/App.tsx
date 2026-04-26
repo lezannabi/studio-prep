@@ -34,6 +34,7 @@ export default function App() {
             projectImportError={store.projectImportError}
             exportFeedback={store.exportFeedback}
             aiFeedback={store.aiFeedback}
+            pendingAiSuggestion={store.pendingAiSuggestion}
             presets={store.projectPresets}
             onChangeView={store.setActiveView}
             onSelectProject={store.selectProject}
@@ -43,6 +44,9 @@ export default function App() {
               store.selectedProject && store.setCoverImage(store.selectedProject.id, imageId)
             }
             onRunAiImageCuration={store.runAiImageCuration}
+            onApplyPendingAiSuggestion={store.applyPendingAiSuggestion}
+            onApplyPendingAiSuggestionToImage={store.applyPendingAiSuggestionToImage}
+            onDismissPendingAiSuggestion={store.dismissPendingAiSuggestion}
             onToggleChecklist={store.toggleChecklistItem}
             onTogglePreset={store.markPresetReady}
             onExecuteExport={store.executeProjectExport}

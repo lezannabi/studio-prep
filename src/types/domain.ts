@@ -52,6 +52,17 @@ export interface ProjectImage {
   aiReason?: string;
 }
 
+export interface AiCurationDecision {
+  imageId: string;
+  status: "selected" | "candidate" | "excluded";
+  reason: string;
+}
+
+export interface AiCurationSuggestion {
+  coverImageId: string;
+  decisions: AiCurationDecision[];
+}
+
 export interface TextConfig {
   channel: TextChannel;
   tone: TextTone;

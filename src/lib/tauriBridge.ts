@@ -1,5 +1,10 @@
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
-import { ExportPreset, ProjectImage, StudioPrepData } from "../types/domain";
+import {
+  AiCurationSuggestion,
+  ExportPreset,
+  ProjectImage,
+  StudioPrepData
+} from "../types/domain";
 
 interface TauriFolderImageRecord {
   name: string;
@@ -30,15 +35,6 @@ interface AnalyzeProjectPayload {
   >;
 }
 
-interface AnalyzeProjectResult {
-  coverImageId: string;
-  decisions: Array<{
-    imageId: string;
-    status: "selected" | "candidate" | "excluded";
-    reason: string;
-  }>;
-}
-
 export const tauriStudioPrepBridge = {
   loadStudioPrepData: () => invoke<StudioPrepData>("load_studio_prep_data"),
   saveStudioPrepData: (data: StudioPrepData) =>
@@ -62,7 +58,7 @@ export const tauriStudioPrepBridge = {
     ),
   pickExportFolder: () => invoke<string | null>("pick_export_folder"),
   analyzeProjectImages: (payload: AnalyzeProjectPayload) =>
-    invoke<AnalyzeProjectResult>("analyze_project_images", {
+    invoke<AiCurationSuggestion>("analyze_project_images", {
       payload: {
         projectName: payload.projectName,
         notes: payload.notes,

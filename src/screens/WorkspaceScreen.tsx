@@ -6,6 +6,7 @@ import { ProjectManagerSheet } from "../components/ProjectManagerSheet";
 import { WorkspaceHeader } from "../components/WorkspaceHeader";
 import { imageStatusLabels, imageTagLabels } from "../lib/labels";
 import {
+  AiCurationSuggestion,
   AppView,
   ExportPreset,
   ImageStatus,
@@ -49,6 +50,7 @@ interface WorkspaceScreenProps {
   projectImportError: string;
   exportFeedback: string;
   aiFeedback: string;
+  pendingAiSuggestion: AiCurationSuggestion | null;
   projectEditorMode: "create" | "edit";
   presets: ExportPreset[];
   onChangeView: (view: AppView) => void;
@@ -57,6 +59,9 @@ interface WorkspaceScreenProps {
   onSetImageStatus: (imageId: string, status: ImageStatus) => void;
   onSetCover: (imageId: string) => void;
   onRunAiImageCuration: () => void;
+  onApplyPendingAiSuggestion: () => void;
+  onApplyPendingAiSuggestionToImage: (imageId: string) => void;
+  onDismissPendingAiSuggestion: () => void;
   onToggleChecklist: (itemId: string) => void;
   onTogglePreset: (presetId: ExportPreset["id"]) => void;
   onExecuteExport: () => void;
@@ -89,6 +94,7 @@ export function WorkspaceScreen({
   projectImportError,
   exportFeedback,
   aiFeedback,
+  pendingAiSuggestion,
   projectEditorMode,
   presets,
   onChangeView,
@@ -97,6 +103,9 @@ export function WorkspaceScreen({
   onSetImageStatus,
   onSetCover,
   onRunAiImageCuration,
+  onApplyPendingAiSuggestion,
+  onApplyPendingAiSuggestionToImage,
+  onDismissPendingAiSuggestion,
   onToggleChecklist,
   onTogglePreset,
   onExecuteExport,
@@ -367,9 +376,13 @@ export function WorkspaceScreen({
                 <ImageOrganizeStage
                   image={selectedImage}
                   aiFeedback={aiFeedback}
+                  pendingAiSuggestion={pendingAiSuggestion}
                   onSetImageStatus={onSetImageStatus}
                   onSetCover={onSetCover}
                   onRunAiImageCuration={onRunAiImageCuration}
+                  onApplyPendingAiSuggestion={onApplyPendingAiSuggestion}
+                  onApplyPendingAiSuggestionToImage={onApplyPendingAiSuggestionToImage}
+                  onDismissPendingAiSuggestion={onDismissPendingAiSuggestion}
                 />
               ) : null}
 
@@ -402,16 +415,28 @@ export function WorkspaceScreen({
 function ImageOrganizeStage({
   image,
   aiFeedback,
+  pendingAiSuggestion,
   onSetImageStatus,
   onSetCover,
-  onRunAiImageCuration
+  onRunAiImageCuration,
+  onApplyPendingAiSuggestion,
+  onApplyPendingAiSuggestionToImage,
+  onDismissPendingAiSuggestion
 }: {
   image?: ProjectImage;
   aiFeedback: string;
+  pendingAiSuggestion: AiCurationSuggestion | null;
   onSetImageStatus: (imageId: string, status: ImageStatus) => void;
   onSetCover: (imageId: string) => void;
   onRunAiImageCuration: () => void;
+  onApplyPendingAiSuggestion: () => void;
+  onApplyPendingAiSuggestionToImage: (imageId: string) => void;
+  onDismissPendingAiSuggestion: () => void;
 }) {
+  const currentSuggestion = pendingAiSuggestion?.decisions.find(
+    (decision) => decision.imageId === image?.id
+  );
+
   return (
     <Panel title="이미지 정리" subtitle="Step 1" className="border-0 bg-transparent p-0 shadow-none">
       {image ? (
@@ -421,7 +446,7 @@ function ImageOrganizeStage({
               <div>
                 <p className="text-xs uppercase tracking-[0.2em] text-stone-500">AI Curation</p>
                 <p className="mt-1 text-sm text-stone-700">
-                  OpenAI가 대표컷과 상태를 추천합니다.
+                  OpenAI가 대표컷과 상태를 추천하고, 승인 후에만 반영합니다.
                 </p>
               </div>
               <button
@@ -435,7 +460,48 @@ function ImageOrganizeStage({
             {aiFeedback ? (
               <p className="mt-3 text-sm text-stone-700">{aiFeedback}</p>
             ) : null}
-            {image.aiReason ? (
+            {pendingAiSuggestion ? (
+              <div className="mt-3 rounded-2xl border border-stone-200 bg-white px-4 py-3">
+                <p className="text-sm font-medium text-stone-900">
+                  AI 추천 대기 중
+                </p>
+                <p className="mt-1 text-sm text-stone-600">
+                  대표컷 추천: {pendingAiSuggestion.coverImageId} · 남은 추천 {pendingAiSuggestion.decisions.length}장
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={onApplyPendingAiSuggestion}
+                    className="rounded-2xl bg-stone-900 px-4 py-2.5 text-sm text-white"
+                  >
+                    전체 적용
+                  </button>
+                  {currentSuggestion ? (
+                    <button
+                      type="button"
+                      onClick={() => onApplyPendingAiSuggestionToImage(image.id)}
+                      className="rounded-2xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-700"
+                    >
+                      현재 컷만 적용
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={onDismissPendingAiSuggestion}
+                    className="rounded-2xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-700"
+                  >
+                    제안 지우기
+                  </button>
+                </div>
+              </div>
+            ) : null}
+            {currentSuggestion ? (
+              <div className="mt-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+                추천 상태: {imageStatusLabels[currentSuggestion.status]}
+                {pendingAiSuggestion?.coverImageId === image.id ? " · 대표컷 추천" : ""}
+                <p className="mt-1 text-emerald-800">{currentSuggestion.reason}</p>
+              </div>
+            ) : image.aiReason ? (
               <p className="mt-3 text-sm text-stone-600">현재 컷 AI 의견: {image.aiReason}</p>
             ) : null}
           </div>

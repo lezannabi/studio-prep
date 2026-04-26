@@ -30,6 +30,8 @@ import {
   updateTextFieldInProject
 } from "../services/studioPrepEditor";
 import {
+  AiCurationDecision,
+  AiCurationSuggestion,
   AppView,
   ExportPresetId,
   ImageStatus,
@@ -68,6 +70,8 @@ export function useStudioPrepState() {
   const [projectImportError, setProjectImportError] = useState("");
   const [exportFeedback, setExportFeedback] = useState("");
   const [aiFeedback, setAiFeedback] = useState("");
+  const [pendingAiSuggestion, setPendingAiSuggestion] =
+    useState<AiCurationSuggestion | null>(null);
 
   const syncSelection = (nextData: StudioPrepData, projectId?: string) => {
     const fallbackProject = nextData.projects.find((project) => project.id === projectId) ?? nextData.projects[0];
@@ -84,6 +88,7 @@ export function useStudioPrepState() {
       setProjectImportError("");
       setExportFeedback("");
       setAiFeedback("");
+      setPendingAiSuggestion(null);
       return;
     }
 
@@ -94,6 +99,7 @@ export function useStudioPrepState() {
     setProjectImportError("");
     setExportFeedback("");
     setAiFeedback("");
+    setPendingAiSuggestion(null);
   };
 
   useEffect(() => {
@@ -272,6 +278,7 @@ export function useStudioPrepState() {
     setActiveView("dashboard");
     setExportFeedback("");
     setAiFeedback("");
+    setPendingAiSuggestion(null);
   };
 
   const startCreateProject = () => {
@@ -280,6 +287,7 @@ export function useStudioPrepState() {
     setProjectUploadFiles([]);
     setFolderSyncError("");
     setProjectImportError("");
+    setPendingAiSuggestion(null);
   };
 
   const editProjectMeta = (projectId: string) => {
@@ -572,26 +580,97 @@ export function useStudioPrepState() {
         notes: selectedProject.notes,
         images: projectImages
       });
-
-      let nextData = data;
-
-      if (!nextData) {
-        return;
-      }
-
-      for (const decision of result.decisions) {
-        nextData = setImageStatusInData(nextData, decision.imageId, decision.status);
-        nextData = setImageAiReasonInData(nextData, decision.imageId, decision.reason);
-      }
-
-      nextData = setCoverImageInData(nextData, selectedProject.id, result.coverImageId);
-      setData(nextData);
-      setAiFeedback(`AI 분석 완료: 대표컷 ${result.coverImageId}, ${result.decisions.length}장 분류`);
+      setPendingAiSuggestion(result);
+      setAiFeedback(
+        `AI 추천 준비됨: 대표컷 1장, ${result.decisions.length}장 분류. 검토 후 적용하세요.`
+      );
     } catch (error) {
       setAiFeedback(
         error instanceof Error ? error.message : "AI 분석 실행 중 오류가 발생했습니다."
       );
     }
+  };
+
+  const applyAiDecisionSet = (
+    current: StudioPrepData,
+    projectId: string,
+    suggestion: AiCurationSuggestion,
+    decisionFilter?: (decision: AiCurationDecision) => boolean
+  ) => {
+    const decisions = decisionFilter
+      ? suggestion.decisions.filter(decisionFilter)
+      : suggestion.decisions;
+    let nextData = current;
+
+    for (const decision of decisions) {
+      nextData = setImageStatusInData(nextData, decision.imageId, decision.status);
+      nextData = setImageAiReasonInData(nextData, decision.imageId, decision.reason);
+    }
+
+    if (!decisionFilter || decisions.some((decision) => decision.imageId === suggestion.coverImageId)) {
+      nextData = setCoverImageInData(nextData, projectId, suggestion.coverImageId);
+    }
+
+    return nextData;
+  };
+
+  const applyPendingAiSuggestion = () => {
+    if (!data || !selectedProject || !pendingAiSuggestion) {
+      return;
+    }
+
+    const nextData = applyAiDecisionSet(data, selectedProject.id, pendingAiSuggestion);
+    setData(nextData);
+    setPendingAiSuggestion(null);
+    setAiFeedback(
+      `AI 추천 적용 완료: 대표컷 ${pendingAiSuggestion.coverImageId}, ${pendingAiSuggestion.decisions.length}장 반영`
+    );
+  };
+
+  const applyPendingAiSuggestionToImage = (imageId: string) => {
+    if (!data || !selectedProject || !pendingAiSuggestion) {
+      return;
+    }
+
+    const decision = pendingAiSuggestion.decisions.find((item) => item.imageId === imageId);
+
+    if (!decision) {
+      return;
+    }
+
+    const nextData = applyAiDecisionSet(
+      data,
+      selectedProject.id,
+      pendingAiSuggestion,
+      (item) => item.imageId === imageId
+    );
+    const remainingDecisions = pendingAiSuggestion.decisions.filter(
+      (item) => item.imageId !== imageId
+    );
+    const nextSuggestion =
+      remainingDecisions.length > 0
+        ? {
+            ...pendingAiSuggestion,
+            decisions: remainingDecisions
+          }
+        : null;
+
+    setData(nextData);
+    setPendingAiSuggestion(nextSuggestion);
+    setAiFeedback(
+      nextSuggestion
+        ? `현재 컷 AI 추천을 적용했습니다. 남은 추천 ${nextSuggestion.decisions.length}장`
+        : "모든 AI 추천 적용이 완료되었습니다."
+    );
+  };
+
+  const dismissPendingAiSuggestion = () => {
+    if (!pendingAiSuggestion) {
+      return;
+    }
+
+    setPendingAiSuggestion(null);
+    setAiFeedback("대기 중인 AI 추천을 지웠습니다.");
   };
 
   const deleteProject = () => {
@@ -632,6 +711,7 @@ export function useStudioPrepState() {
     projectImportError,
     exportFeedback,
     aiFeedback,
+    pendingAiSuggestion,
     importProjectFile,
     createProject,
     saveProjectMeta,
@@ -641,6 +721,9 @@ export function useStudioPrepState() {
     executeProjectExport,
     pickProjectExportFolder,
     runAiImageCuration,
+    applyPendingAiSuggestion,
+    applyPendingAiSuggestionToImage,
+    dismissPendingAiSuggestion,
     deleteProject,
     openProject,
     updateFinalText,
