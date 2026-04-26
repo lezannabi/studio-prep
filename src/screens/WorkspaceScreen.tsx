@@ -4,13 +4,7 @@ import { ImageThumbnail } from "../components/ImageThumbnail";
 import { ProjectListItem } from "../components/ProjectListItem";
 import { ProjectManagerSheet } from "../components/ProjectManagerSheet";
 import { WorkspaceHeader } from "../components/WorkspaceHeader";
-import {
-  channelLabels,
-  imageStatusLabels,
-  imageTagLabels,
-  lengthLabels,
-  toneLabels
-} from "../lib/labels";
+import { imageStatusLabels, imageTagLabels } from "../lib/labels";
 import {
   AppView,
   ExportPreset,
@@ -22,7 +16,7 @@ import {
 } from "../types/domain";
 import { Badge, GhostButton, Panel } from "../components/ui";
 
-const stageOrder: AppView[] = ["project", "text", "review", "dashboard"];
+const stageOrder: AppView[] = ["project", "review", "dashboard"];
 const stageLabels: Record<AppView, string> = {
   project: "이미지 정리",
   text: "텍스트 작성",
@@ -52,6 +46,8 @@ interface WorkspaceScreenProps {
   projectUploadFiles: File[];
   projectImagesForEditor: ProjectImage[];
   folderSyncError: string;
+  projectImportError: string;
+  exportFeedback: string;
   projectEditorMode: "create" | "edit";
   presets: ExportPreset[];
   onChangeView: (view: AppView) => void;
@@ -59,23 +55,16 @@ interface WorkspaceScreenProps {
   onSelectImage: (imageId: string) => void;
   onSetImageStatus: (imageId: string, status: ImageStatus) => void;
   onSetCover: (imageId: string) => void;
-  onSelectDraft: (draftId: string) => void;
-  onUpdateTextEnum: (field: "channel" | "tone" | "length", value: string) => void;
-  onUpdateTextField: (
-    field: "mustInclude" | "preferred" | "forbidden" | "reference",
-    value: string
-  ) => void;
-  onUpdateFinalText: (value: string) => void;
-  onApplyRewritePreset: (
-    mode: "shorter" | "calmer" | "descriptive" | "preserve"
-  ) => void;
   onToggleChecklist: (itemId: string) => void;
   onTogglePreset: (presetId: ExportPreset["id"]) => void;
+  onExecuteExport: () => void;
+  onPickExportFolder: () => void;
   onResetSession: () => void;
   onProjectFormChange: (field: keyof ProjectFormValues, value: string) => void;
   onProjectUploadFilesChange: (files: File[]) => void;
   onRemoveProjectImage: (imageId: string) => void;
   onSyncProjectFolderImages: () => void;
+  onImportProjectFile: (file: File) => void;
   onCreateProject: () => void;
   onUpdateProject: () => void;
   onDeleteProject: () => void;
@@ -95,6 +84,8 @@ export function WorkspaceScreen({
   projectUploadFiles,
   projectImagesForEditor,
   folderSyncError,
+  projectImportError,
+  exportFeedback,
   projectEditorMode,
   presets,
   onChangeView,
@@ -102,18 +93,16 @@ export function WorkspaceScreen({
   onSelectImage,
   onSetImageStatus,
   onSetCover,
-  onSelectDraft,
-  onUpdateTextEnum,
-  onUpdateTextField,
-  onUpdateFinalText,
-  onApplyRewritePreset,
   onToggleChecklist,
   onTogglePreset,
+  onExecuteExport,
+  onPickExportFolder,
   onResetSession,
   onProjectFormChange,
   onProjectUploadFilesChange,
   onRemoveProjectImage,
   onSyncProjectFolderImages,
+  onImportProjectFile,
   onCreateProject,
   onUpdateProject,
   onDeleteProject,
@@ -144,6 +133,28 @@ export function WorkspaceScreen({
               >
                 새 프로젝트
               </button>
+              <label className="mb-3 block cursor-pointer rounded-2xl border border-stone-200/80 bg-white px-4 py-3 text-center text-sm text-stone-700">
+                프로젝트 파일 불러오기
+                <input
+                  type="file"
+                  accept=".json,application/json"
+                  className="hidden"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+
+                    if (file) {
+                      onImportProjectFile(file);
+                    }
+
+                    event.target.value = "";
+                  }}
+                />
+              </label>
+              {projectImportError ? (
+                <div className="mb-3 rounded-2xl border border-rose-200 bg-rose-50 px-3 py-3 text-sm text-rose-700">
+                  {projectImportError}
+                </div>
+              ) : null}
               <div className="space-y-1.5">
                 {data.projects.map((item) => (
                   <ProjectListItem
@@ -178,29 +189,34 @@ export function WorkspaceScreen({
             onDelete={onDeleteProject}
             onCreateMode={onStartCreateProject}
           />
+        </aside>
 
+        <section className="space-y-4">
           <Panel title="이미지 목록" subtitle="썸네일" className="p-0">
-            <div className="max-h-[56vh] space-y-2 overflow-auto px-4 pb-4">
+            <div className="overflow-x-auto px-4 pb-4">
               {projectImages.length > 0 ? (
-                projectImages.map((image) => (
-                  <ImageThumbnail
-                    key={image.id}
-                    image={image}
-                    active={image.id === selectedImageId}
-                    draggable={projectImages.length > 1}
-                    onClick={() => onSelectImage(image.id)}
-                    onDragStart={() => setDraggedImageId(image.id)}
-                    onDrop={() => {
-                      if (!draggedImageId || draggedImageId === image.id) {
-                        return;
-                      }
+                <div className="flex min-w-max gap-3">
+                  {projectImages.map((image) => (
+                    <ImageThumbnail
+                      key={image.id}
+                      image={image}
+                      active={image.id === selectedImageId}
+                      compact
+                      draggable={projectImages.length > 1}
+                      onClick={() => onSelectImage(image.id)}
+                      onDragStart={() => setDraggedImageId(image.id)}
+                      onDrop={() => {
+                        if (!draggedImageId || draggedImageId === image.id) {
+                          return;
+                        }
 
-                      onReorderProjectImages(draggedImageId, image.id);
-                      setDraggedImageId("");
-                    }}
-                    onDragEnd={() => setDraggedImageId("")}
-                  />
-                ))
+                        onReorderProjectImages(draggedImageId, image.id);
+                        setDraggedImageId("");
+                      }}
+                      onDragEnd={() => setDraggedImageId("")}
+                    />
+                  ))}
+                </div>
               ) : (
                 <div className="rounded-2xl bg-stone-100/80 px-4 py-4 text-sm text-stone-600">
                   아직 연결된 이미지가 없습니다.
@@ -209,13 +225,11 @@ export function WorkspaceScreen({
             </div>
             {projectImages.length > 1 ? (
               <div className="px-4 pb-4 text-xs text-stone-500">
-                썸네일을 드래그해서 프로젝트 이미지 순서를 바꿀 수 있습니다.
+                썸네일을 좌우로 넘기거나 드래그해서 프로젝트 이미지 순서를 바꿀 수 있습니다.
               </div>
             ) : null}
           </Panel>
-        </aside>
 
-        <section className="space-y-4">
           <div className="rounded-[30px] border border-stone-200/70 bg-white/70 p-4 xl:p-5">
             <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
               <div>
@@ -353,17 +367,6 @@ export function WorkspaceScreen({
                 />
               ) : null}
 
-              {activeView === "text" && project ? (
-                <TextStage
-                  project={project}
-                  onSelectDraft={onSelectDraft}
-                  onUpdateTextEnum={onUpdateTextEnum}
-                  onUpdateTextField={onUpdateTextField}
-                  onUpdateFinalText={onUpdateFinalText}
-                  onApplyRewritePreset={onApplyRewritePreset}
-                />
-              ) : null}
-
               {activeView === "review" && project ? (
                 <ReviewStage
                   project={project}
@@ -376,7 +379,10 @@ export function WorkspaceScreen({
                 <ExportStage
                   project={project}
                   presets={presets}
+                  exportFeedback={exportFeedback}
                   onTogglePreset={onTogglePreset}
+                  onExecuteExport={onExecuteExport}
+                  onPickExportFolder={onPickExportFolder}
                 />
               ) : null}
             </div>
@@ -450,128 +456,6 @@ function ImageOrganizeStage({
   );
 }
 
-function TextStage({
-  project,
-  onSelectDraft,
-  onUpdateTextEnum,
-  onUpdateTextField,
-  onUpdateFinalText,
-  onApplyRewritePreset
-}: {
-  project: Project;
-  onSelectDraft: (draftId: string) => void;
-  onUpdateTextEnum: (field: "channel" | "tone" | "length", value: string) => void;
-  onUpdateTextField: (
-    field: "mustInclude" | "preferred" | "forbidden" | "reference",
-    value: string
-  ) => void;
-  onUpdateFinalText: (value: string) => void;
-  onApplyRewritePreset: (
-    mode: "shorter" | "calmer" | "descriptive" | "preserve"
-  ) => void;
-}) {
-  const { textConfig } = project;
-
-  return (
-    <Panel title="텍스트 작성" subtitle="Step 2" className="border-0 bg-transparent p-0 shadow-none">
-      <div className="space-y-5">
-        <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-1">
-          <SelectField
-            label="채널"
-            value={textConfig.channel}
-            options={channelLabels}
-            onChange={(value) => onUpdateTextEnum("channel", value)}
-          />
-          <SelectField
-            label="톤"
-            value={textConfig.tone}
-            options={toneLabels}
-            onChange={(value) => onUpdateTextEnum("tone", value)}
-          />
-          <SelectField
-            label="길이"
-            value={textConfig.length}
-            options={lengthLabels}
-            onChange={(value) => onUpdateTextEnum("length", value)}
-          />
-        </div>
-
-        <div className="space-y-3 rounded-[24px] bg-stone-50/90 p-4">
-          <TextFieldGroup
-            title="필수 포함"
-            value={textConfig.mustInclude}
-            onChange={(value) => onUpdateTextField("mustInclude", value)}
-          />
-          <TextFieldGroup
-            title="우선 반영"
-            value={textConfig.preferred}
-            onChange={(value) => onUpdateTextField("preferred", value)}
-          />
-          <TextFieldGroup
-            title="사용 금지"
-            value={textConfig.forbidden}
-            onChange={(value) => onUpdateTextField("forbidden", value)}
-          />
-          <TextFieldGroup
-            title="참고 문장"
-            value={textConfig.reference}
-            onChange={(value) => onUpdateTextField("reference", value)}
-          />
-        </div>
-
-        <div>
-          <p className="mb-3 text-sm font-medium text-stone-800">초안 선택</p>
-          <div className="space-y-2">
-            {project.drafts.map((draft) => (
-              <button
-                key={draft.id}
-                type="button"
-                onClick={() => onSelectDraft(draft.id)}
-                className={`w-full rounded-2xl border p-3 text-left ${
-                  draft.selected
-                    ? "border-teal-600 bg-teal-50/80"
-                    : "border-stone-200 bg-white"
-                }`}
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-sm font-medium text-stone-900">
-                    {draft.title}
-                  </span>
-                  {draft.selected ? <Badge tone="accent">선택</Badge> : null}
-                </div>
-                <p className="mt-2 text-sm leading-6 text-stone-600">{draft.body}</p>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <p className="mb-3 text-sm font-medium text-stone-800">최종 결과물</p>
-          <textarea
-            value={project.finalText}
-            onChange={(event) => onUpdateFinalText(event.target.value)}
-            className="min-h-[220px] w-full rounded-[24px] border border-stone-200 bg-white px-4 py-4 text-sm leading-7 text-stone-700"
-          />
-          <div className="mt-3 flex flex-wrap gap-2">
-            <GhostButton onClick={() => onApplyRewritePreset("shorter")}>
-              더 짧게
-            </GhostButton>
-            <GhostButton onClick={() => onApplyRewritePreset("calmer")}>
-              더 담백하게
-            </GhostButton>
-            <GhostButton onClick={() => onApplyRewritePreset("descriptive")}>
-              더 설명형으로
-            </GhostButton>
-            <GhostButton onClick={() => onApplyRewritePreset("preserve")}>
-              포함 단어 유지
-            </GhostButton>
-          </div>
-        </div>
-      </div>
-    </Panel>
-  );
-}
-
 function ReviewStage({
   project,
   images,
@@ -619,11 +503,17 @@ function ReviewStage({
 function ExportStage({
   project,
   presets,
-  onTogglePreset
+  exportFeedback,
+  onTogglePreset,
+  onExecuteExport,
+  onPickExportFolder
 }: {
   project: Project;
   presets: ExportPreset[];
+  exportFeedback: string;
   onTogglePreset: (presetId: ExportPreset["id"]) => void;
+  onExecuteExport: () => void;
+  onPickExportFolder: () => void;
 }) {
   return (
     <Panel title="내보내기" subtitle="Step 4" className="border-0 bg-transparent p-0 shadow-none">
@@ -635,6 +525,11 @@ function ExportStage({
           <p className="mt-2 text-sm text-stone-700">
             `exports/{project.name.toLowerCase().replace(/\s+/g, "-")}/`
           </p>
+          {project.exportFolderPath ? (
+            <p className="mt-2 text-xs text-stone-500">
+              선택 폴더: {project.exportFolderPath}
+            </p>
+          ) : null}
         </div>
         <div className="rounded-[24px] bg-stone-50/90 p-4">
           <p className="text-xs uppercase tracking-[0.2em] text-stone-500">
@@ -665,68 +560,29 @@ function ExportStage({
             ))}
           </div>
         </div>
+        {exportFeedback ? (
+          <div className="rounded-[24px] border border-stone-200 bg-stone-50/90 px-4 py-3 text-sm text-stone-700">
+            {exportFeedback}
+          </div>
+        ) : null}
+        {isTauriRuntime() ? (
+          <button
+            type="button"
+            onClick={onPickExportFolder}
+            className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm font-medium text-stone-700"
+          >
+            내보내기 폴더 선택
+          </button>
+        ) : null}
         <button
           type="button"
+          onClick={onExecuteExport}
           className="w-full rounded-2xl bg-stone-900 px-4 py-3 text-sm font-medium text-white"
         >
           내보내기 실행
         </button>
       </div>
     </Panel>
-  );
-}
-
-function SelectField({
-  label,
-  value,
-  options,
-  onChange
-}: {
-  label: string;
-  value: string;
-  options: Record<string, string>;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <label className="block text-sm text-stone-700">
-      <span className="text-xs uppercase tracking-[0.18em] text-stone-500">
-        {label}
-      </span>
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="mt-2 w-full rounded-2xl border border-stone-200 bg-white px-4 py-3"
-      >
-        {Object.entries(options).map(([optionValue, optionLabel]) => (
-          <option key={optionValue} value={optionValue}>
-            {optionLabel}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
-
-function TextFieldGroup({
-  title,
-  value,
-  onChange
-}: {
-  title: string;
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <label className="block text-sm text-stone-700">
-      <span className="text-xs uppercase tracking-[0.18em] text-stone-500">
-        {title}
-      </span>
-      <textarea
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="mt-2 min-h-[78px] w-full rounded-2xl border border-stone-200 bg-white px-3 py-3"
-      />
-    </label>
   );
 }
 
@@ -771,7 +627,7 @@ function buildNextTasks(
   }
   if (tasks.length === 0) {
     tasks.push("이미지 정리 단계를 마지막으로 한 번 더 점검하세요.");
-    tasks.push("텍스트 최종 문안을 검토하세요.");
+    tasks.push("검수 체크리스트를 마지막으로 한 번 더 점검하세요.");
     tasks.push("내보내기 실행 전 프리셋 상태를 확인하세요.");
   }
 

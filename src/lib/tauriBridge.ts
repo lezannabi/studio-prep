@@ -1,9 +1,25 @@
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
-import { StudioPrepData } from "../types/domain";
+import { ExportPreset, ProjectImage, StudioPrepData } from "../types/domain";
 
 interface TauriFolderImageRecord {
   name: string;
   path: string;
+}
+
+interface ExportProjectPayload {
+  projectName: string;
+  sourceFolderPath?: string;
+  exportFolderPath?: string;
+  images: Array<
+    Pick<ProjectImage, "name" | "imageUrl" | "sourcePath" | "status" | "isCover">
+  >;
+  presets: Array<Pick<ExportPreset, "id" | "name">>;
+}
+
+interface ExportProjectResult {
+  exportPath: string;
+  exportedImageCount: number;
+  exportedPresetCount: number;
 }
 
 export const tauriStudioPrepBridge = {
@@ -21,5 +37,11 @@ export const tauriStudioPrepBridge = {
       sourcePath: image.path,
       imageUrl: convertFileSrc(image.path)
     }));
-  }
+  },
+  exportProjectAssets: (payload: ExportProjectPayload) =>
+    invoke<ExportProjectResult>(
+      "export_project_assets",
+      payload as unknown as Record<string, unknown>
+    ),
+  pickExportFolder: () => invoke<string | null>("pick_export_folder")
 };

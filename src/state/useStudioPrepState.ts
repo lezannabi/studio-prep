@@ -42,6 +42,11 @@ import {
 } from "../types/domain";
 
 type TextField = "mustInclude" | "preferred" | "forbidden" | "reference";
+type ImportedProjectBundle = {
+  project: Project;
+  images: Record<string, ProjectImage>;
+  exportPresets?: StudioPrepData["exportPresets"];
+};
 
 const repository = isTauriRuntime()
   ? new TauriStudioPrepRepository()
@@ -59,6 +64,8 @@ export function useStudioPrepState() {
   );
   const [projectUploadFiles, setProjectUploadFiles] = useState<File[]>([]);
   const [folderSyncError, setFolderSyncError] = useState("");
+  const [projectImportError, setProjectImportError] = useState("");
+  const [exportFeedback, setExportFeedback] = useState("");
 
   const syncSelection = (nextData: StudioPrepData, projectId?: string) => {
     const fallbackProject = nextData.projects.find((project) => project.id === projectId) ?? nextData.projects[0];
@@ -72,6 +79,8 @@ export function useStudioPrepState() {
       setProjectForm(createEmptyProjectFormValues());
       setProjectUploadFiles([]);
       setFolderSyncError("");
+      setProjectImportError("");
+      setExportFeedback("");
       return;
     }
 
@@ -79,6 +88,8 @@ export function useStudioPrepState() {
     setProjectForm(createProjectFormValues(project));
     setProjectUploadFiles([]);
     setFolderSyncError("");
+    setProjectImportError("");
+    setExportFeedback("");
   };
 
   useEffect(() => {
@@ -255,6 +266,7 @@ export function useStudioPrepState() {
     syncSelection(resetData);
     syncEditorFromProject(resetData.projects[0]);
     setActiveView("dashboard");
+    setExportFeedback("");
   };
 
   const startCreateProject = () => {
@@ -262,6 +274,7 @@ export function useStudioPrepState() {
     setProjectForm(createEmptyProjectFormValues());
     setProjectUploadFiles([]);
     setFolderSyncError("");
+    setProjectImportError("");
   };
 
   const editProjectMeta = (projectId: string) => {
@@ -288,6 +301,43 @@ export function useStudioPrepState() {
 
   const updateProjectUploadFiles = (files: File[]) => {
     setProjectUploadFiles(files);
+  };
+
+  const importProjectFile = async (file: File) => {
+    if (!data) {
+      return;
+    }
+
+    setProjectImportError("");
+
+    try {
+      const raw = await readFileAsText(file);
+      const parsed = JSON.parse(raw) as unknown;
+
+      if (isStudioPrepDataShape(parsed)) {
+        const importedData = parsed as StudioPrepData;
+        setData(importedData);
+        syncSelection(importedData);
+        syncEditorFromProject(importedData.projects[0]);
+        setActiveView("project");
+        return;
+      }
+
+      if (isImportedProjectBundleShape(parsed)) {
+        const nextData = mergeImportedProjectBundle(data, parsed as ImportedProjectBundle);
+        setData(nextData);
+        syncSelection(nextData, nextData.projects[0]?.id);
+        syncEditorFromProject(nextData.projects[0]);
+        setActiveView("project");
+        return;
+      }
+
+      setProjectImportError("지원하지 않는 프로젝트 파일 형식입니다.");
+    } catch (error) {
+      setProjectImportError(
+        error instanceof Error ? error.message : "프로젝트 파일을 불러오지 못했습니다."
+      );
+    }
   };
 
   const createProject = async () => {
@@ -428,6 +478,77 @@ export function useStudioPrepState() {
     setData(nextData);
   };
 
+  const executeProjectExport = async () => {
+    if (!selectedProject) {
+      return;
+    }
+
+    setExportFeedback("");
+
+    if (!isTauriRuntime()) {
+      setExportFeedback("내보내기 실행은 데스크톱 앱(Tauri)에서만 지원됩니다.");
+      return;
+    }
+
+    const readyPresets = projectPresets.filter((preset) => preset.ready);
+    const imagesForExport = selectImagesForExport(projectImages);
+
+    if (readyPresets.length === 0) {
+      setExportFeedback("준비된 내보내기 프리셋이 없습니다.");
+      return;
+    }
+
+    if (imagesForExport.length === 0) {
+      setExportFeedback("내보낼 이미지가 없습니다.");
+      return;
+    }
+
+    try {
+      const result = await tauriStudioPrepBridge.exportProjectAssets({
+        projectName: selectedProject.name,
+        sourceFolderPath: selectedProject.sourceFolderPath,
+        exportFolderPath: selectedProject.exportFolderPath,
+        images: imagesForExport,
+        presets: readyPresets
+      });
+
+      setExportFeedback(
+        `${result.exportedPresetCount}개 프리셋으로 ${result.exportedImageCount}장 내보내기 완료: ${result.exportPath}`
+      );
+    } catch (error) {
+      setExportFeedback(
+        error instanceof Error ? error.message : "내보내기 실행 중 오류가 발생했습니다."
+      );
+    }
+  };
+
+  const pickProjectExportFolder = async () => {
+    if (!selectedProject || !data || !isTauriRuntime()) {
+      return;
+    }
+
+    try {
+      const folderPath = await tauriStudioPrepBridge.pickExportFolder();
+
+      if (!folderPath) {
+        return;
+      }
+
+      const nextProject = {
+        ...selectedProject,
+        exportFolderPath: folderPath
+      };
+      const nextData = updateProjectInData(data, selectedProject.id, () => nextProject);
+      setData(nextData);
+      syncEditorFromProject(nextProject);
+      setExportFeedback(`내보내기 폴더 선택: ${folderPath}`);
+    } catch (error) {
+      setExportFeedback(
+        error instanceof Error ? error.message : "내보내기 폴더를 선택하지 못했습니다."
+      );
+    }
+  };
+
   const deleteProject = () => {
     if (!data || !selectedProject) {
       return;
@@ -463,11 +584,16 @@ export function useStudioPrepState() {
     updateProjectUploadFiles,
     projectUploadFiles,
     folderSyncError,
+    projectImportError,
+    exportFeedback,
+    importProjectFile,
     createProject,
     saveProjectMeta,
     syncProjectFolderImages,
     removeProjectImage,
     reorderProjectImages,
+    executeProjectExport,
+    pickProjectExportFolder,
     deleteProject,
     openProject,
     updateFinalText,
@@ -478,4 +604,138 @@ export function useStudioPrepState() {
     markPresetReady,
     resetSession
   };
+}
+
+function selectImagesForExport(images: ProjectImage[]) {
+  const selected = images.filter((image) => image.status === "selected" || image.isCover);
+
+  if (selected.length > 0) {
+    return selected;
+  }
+
+  const candidates = images.filter((image) => image.status === "candidate");
+  if (candidates.length > 0) {
+    return candidates;
+  }
+
+  const exportable = images.filter((image) => image.status !== "excluded");
+  if (exportable.length > 0) {
+    return exportable;
+  }
+
+  return images;
+}
+
+function readFileAsText(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : "");
+    reader.onerror = () => reject(reader.error ?? new Error("파일을 읽지 못했습니다."));
+    reader.readAsText(file);
+  });
+}
+
+function isStudioPrepDataShape(value: unknown): value is StudioPrepData {
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      Array.isArray((value as StudioPrepData).projects) &&
+      typeof (value as StudioPrepData).images === "object" &&
+      Array.isArray((value as StudioPrepData).exportPresets)
+  );
+}
+
+function isImportedProjectBundleShape(value: unknown): value is ImportedProjectBundle {
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      typeof (value as ImportedProjectBundle).project === "object" &&
+      typeof (value as ImportedProjectBundle).images === "object"
+  );
+}
+
+function mergeImportedProjectBundle(
+  data: StudioPrepData,
+  bundle: ImportedProjectBundle
+): StudioPrepData {
+  const projectId = createUniqueId(bundle.project.id, new Set(data.projects.map((project) => project.id)));
+  const imageIdMap = new Map<string, string>();
+  const usedImageIds = new Set(Object.keys(data.images));
+
+  for (const imageId of bundle.project.imageIds) {
+    imageIdMap.set(imageId, createUniqueId(imageId, usedImageIds));
+  }
+
+  const importedImages = Object.fromEntries(
+    bundle.project.imageIds
+      .map((imageId) => {
+        const image = bundle.images[imageId];
+        const nextImageId = imageIdMap.get(imageId);
+
+        if (!image || !nextImageId) {
+          return null;
+        }
+
+        return [
+          nextImageId,
+          {
+            ...image,
+            id: nextImageId
+          }
+        ] as const;
+      })
+      .filter((entry): entry is readonly [string, ProjectImage] => Boolean(entry))
+  );
+
+  const importedProject: Project = {
+    ...bundle.project,
+    id: projectId,
+    imageIds: bundle.project.imageIds
+      .map((imageId) => imageIdMap.get(imageId))
+      .filter((imageId): imageId is string => Boolean(imageId))
+  };
+
+  return {
+    ...data,
+    projects: [importedProject, ...data.projects],
+    images: {
+      ...data.images,
+      ...importedImages
+    },
+    exportPresets: mergeExportPresets(data.exportPresets, bundle.exportPresets ?? [])
+  };
+}
+
+function mergeExportPresets(
+  currentPresets: StudioPrepData["exportPresets"],
+  importedPresets: StudioPrepData["exportPresets"]
+) {
+  const presetMap = new Map(currentPresets.map((preset) => [preset.id, preset]));
+
+  for (const preset of importedPresets) {
+    if (!presetMap.has(preset.id)) {
+      presetMap.set(preset.id, preset);
+    }
+  }
+
+  return Array.from(presetMap.values());
+}
+
+function createUniqueId(id: string, usedIds: Set<string>) {
+  if (!usedIds.has(id)) {
+    usedIds.add(id);
+    return id;
+  }
+
+  let suffix = 1;
+  let nextId = `${id}-${suffix}`;
+
+  while (usedIds.has(nextId)) {
+    suffix += 1;
+    nextId = `${id}-${suffix}`;
+  }
+
+  usedIds.add(nextId);
+  return nextId;
 }

@@ -91,6 +91,7 @@ export interface Project {
   status: ProjectStatus;
   notes: string;
   sourceFolderPath?: string;
+  exportFolderPath?: string;
   imageIds: string[];
   textConfig: TextConfig;
   drafts: TextDraft[];

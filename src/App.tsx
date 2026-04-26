@@ -12,16 +12,16 @@ export default function App() {
   }
 
   const data = store.data;
+  const activeWorkspaceView = store.activeView === "text" ? "project" : store.activeView;
 
   const renderView = () => {
-    switch (store.activeView) {
+    switch (activeWorkspaceView) {
       case "project":
-      case "text":
       case "review":
       case "dashboard":
         return (
           <WorkspaceScreen
-            activeView={store.activeView}
+            activeView={activeWorkspaceView}
             data={data}
             project={store.selectedProject}
             projectImages={store.projectImages}
@@ -31,6 +31,8 @@ export default function App() {
             projectEditorMode={store.projectEditorMode}
             projectImagesForEditor={store.projectImages}
             folderSyncError={store.folderSyncError}
+            projectImportError={store.projectImportError}
+            exportFeedback={store.exportFeedback}
             presets={store.projectPresets}
             onChangeView={store.setActiveView}
             onSelectProject={store.selectProject}
@@ -39,18 +41,16 @@ export default function App() {
             onSetCover={(imageId) =>
               store.selectedProject && store.setCoverImage(store.selectedProject.id, imageId)
             }
-            onSelectDraft={store.selectDraft}
-            onUpdateTextEnum={(field, value) => store.updateTextEnum(field, value as never)}
-            onUpdateTextField={store.updateTextField}
-            onUpdateFinalText={store.updateFinalText}
-            onApplyRewritePreset={store.applyRewritePreset}
             onToggleChecklist={store.toggleChecklistItem}
             onTogglePreset={store.markPresetReady}
+            onExecuteExport={store.executeProjectExport}
+            onPickExportFolder={store.pickProjectExportFolder}
             onResetSession={store.resetSession}
             onProjectFormChange={store.updateProjectForm}
             onProjectUploadFilesChange={store.updateProjectUploadFiles}
             onRemoveProjectImage={store.removeProjectImage}
             onSyncProjectFolderImages={store.syncProjectFolderImages}
+            onImportProjectFile={store.importProjectFile}
             projectUploadFiles={store.projectUploadFiles}
             onCreateProject={store.createProject}
             onUpdateProject={store.saveProjectMeta}

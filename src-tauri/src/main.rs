@@ -2,7 +2,10 @@
 
 mod repository;
 
-use repository::{FolderImageRecord, StudioPrepRepository};
+use repository::{
+    ExportImagePayload, ExportPresetPayload, ExportProjectResult, FolderImageRecord,
+    StudioPrepRepository,
+};
 use serde_json::Value;
 use tauri::AppHandle;
 
@@ -29,6 +32,32 @@ fn scan_project_folder_images(
     StudioPrepRepository::new(app).scan_project_folder_images(&folder_path)
 }
 
+#[tauri::command]
+fn export_project_assets(
+    app: AppHandle,
+    project_name: String,
+    source_folder_path: Option<String>,
+    export_folder_path: Option<String>,
+    images: Vec<ExportImagePayload>,
+    presets: Vec<ExportPresetPayload>,
+) -> Result<ExportProjectResult, String> {
+    StudioPrepRepository::new(app)
+        .export_project_assets(
+            &project_name,
+            source_folder_path,
+            export_folder_path,
+            images,
+            presets,
+        )
+}
+
+#[tauri::command]
+fn pick_export_folder() -> Option<String> {
+    rfd::FileDialog::new()
+        .pick_folder()
+        .map(|path| path.to_string_lossy().to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -36,7 +65,9 @@ pub fn run() {
             load_studio_prep_data,
             save_studio_prep_data,
             reset_studio_prep_data,
-            scan_project_folder_images
+            scan_project_folder_images,
+            export_project_assets,
+            pick_export_folder
         ])
         .run(tauri::generate_context!())
         .expect("error while running Studio Prep");
